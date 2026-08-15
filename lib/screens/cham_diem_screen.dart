@@ -21,6 +21,12 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
   
   // State lưu minh chứng: Map<idMuc, base64String>
   final Map<int, String> _minhChung = {};
+  
+  // State lưu tên file minh chứng: Map<idMuc, fileName>
+  final Map<int, String> _minhChungName = {};
+  
+  // Biến kiểm tra xem sinh viên đã chấm điểm chưa
+  bool _daChamDiem = false;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -51,12 +57,19 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
               _diemDaCham[int.parse(parts[0])] = int.parse(parts[1]);
             }
           }
+          if (_diemDaCham.isNotEmpty) {
+            _daChamDiem = true;
+          }
         }
 
         // Parse minh chứng đã nộp (nếu có)
         if (_phieuData!['minh_chung_da_nop'] != null) {
           for (var mc in _phieuData!['minh_chung_da_nop']) {
-            _minhChung[int.parse(mc['id_muc'].toString())] = mc['hinh_anh'];
+            int idMuc = int.parse(mc['id_muc'].toString());
+            _minhChung[idMuc] = mc['hinh_anh'];
+            // Lấy tên file từ đường dẫn
+            String filePath = mc['hinh_anh'].toString();
+            _minhChungName[idMuc] = filePath.contains('/') ? filePath.split('/').last : filePath;
           }
         }
         
@@ -83,6 +96,7 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
         final base64String = 'data:image/jpeg;base64,' + base64Encode(bytes);
         setState(() {
           _minhChung[idMuc] = base64String;
+          _minhChungName[idMuc] = image.name;
         });
       }
     } catch (e) {
@@ -92,35 +106,43 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
     }
   }
 
+  void _confirmSubmit() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Xác nhận lưu', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF2B6CB0), fontSize: 18)),
+          content: Text(
+            _daChamDiem 
+                ? 'Bạn có chắc chắn muốn lưu cập nhật minh chứng này không?'
+                : 'Bạn có chắc chắn muốn lưu kết quả chấm điểm này không? Sau khi lưu, bạn sẽ không thể thay đổi điểm số, chỉ có thể bổ sung minh chứng.', 
+            style: GoogleFonts.plusJakartaSans(fontSize: 14)
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Hủy', style: GoogleFonts.plusJakartaSans(color: Colors.grey[600], fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _submit();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3182CE),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('Đồng ý', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _submit() async {
-    // Validate: Kiểm tra các mục bắt buộc minh chứng
-    bool hasError = false;
-    String errorMsg = '';
-
-    for (var dieu in _phieuData!['tieu_chi']) {
-      for (var khoan in dieu['khoan']) {
-        for (var muc in khoan['muc']) {
-          if (muc['quyen_sv'] == 1 && muc['co_minh_chung'] == 1) {
-            int idMuc = int.parse(muc['id_muc'].toString());
-            // Chỉ yêu cầu minh chứng nếu có nhập điểm > 0
-            if ((_diemDaCham[idMuc] ?? 0) > 0 && !_minhChung.containsKey(idMuc)) {
-              hasError = true;
-              errorMsg = 'Vui lòng bổ sung minh chứng cho mục: ${muc['ten_muc']}';
-              break;
-            }
-          }
-        }
-        if (hasError) break;
-      }
-      if (hasError) break;
-    }
-
-    if (hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
-      );
-      return;
-    }
+    // Đã bỏ qua validate bắt buộc có minh chứng theo yêu cầu
 
     setState(() {
       _isLoading = true;
@@ -230,7 +252,7 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
                                                       SizedBox(
                                                         width: 60,
                                                         child: TextFormField(
-                                                          enabled: isQuyenSv,
+                                                          enabled: isQuyenSv && !_daChamDiem,
                                                           initialValue: _diemDaCham[idMuc]?.toString() ?? '',
                                                           keyboardType: TextInputType.number,
                                                           textAlign: TextAlign.center,
@@ -255,25 +277,78 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
                                                   ),
                                                   if (coMinhChung && isQuyenSv)
                                                     Padding(
-                                                      padding: const EdgeInsets.only(top: 8.0),
-                                                      child: Row(
-                                                        children: [
-                                                          ElevatedButton.icon(
-                                                            onPressed: () => _pickImage(idMuc),
-                                                            icon: const Icon(Icons.upload_file, size: 16),
-                                                            label: const Text('Minh chứng', style: TextStyle(fontSize: 12)),
-                                                            style: ElevatedButton.styleFrom(
-                                                              visualDensity: VisualDensity.compact,
-                                                              backgroundColor: _minhChung.containsKey(idMuc) ? Colors.green : null,
-                                                            ),
-                                                          ),
-                                                          if (_minhChung.containsKey(idMuc))
-                                                            const Padding(
-                                                              padding: EdgeInsets.only(left: 8.0),
-                                                              child: Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                                      padding: const EdgeInsets.only(top: 12.0),
+                                                      child: _minhChung.containsKey(idMuc)
+                                                          ? Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.green.withOpacity(0.05),
+                                                                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                                                borderRadius: BorderRadius.circular(8),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                children: [
+                                                                  Expanded(
+                                                                    child: Row(
+                                                                      children: [
+                                                                        const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                                                        const SizedBox(width: 8),
+                                                                        Expanded(
+                                                                          child: Text(
+                                                                            _minhChungName[idMuc] ?? 'Đã đính kèm minh chứng',
+                                                                            style: GoogleFonts.plusJakartaSans(
+                                                                              fontSize: 13,
+                                                                              color: Colors.green[700],
+                                                                              fontWeight: FontWeight.w600,
+                                                                            ),
+                                                                            maxLines: 1,
+                                                                            overflow: TextOverflow.ellipsis,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(width: 8),
+                                                                  Row(
+                                                                    children: [
+                                                                      IconButton(
+                                                                        icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                                                                        onPressed: () => _pickImage(idMuc),
+                                                                        constraints: const BoxConstraints(),
+                                                                        padding: const EdgeInsets.all(4),
+                                                                        tooltip: 'Thay thế',
+                                                                      ),
+                                                                      const SizedBox(width: 8),
+                                                                      IconButton(
+                                                                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                                                        onPressed: () {
+                                                                          setState(() {
+                                                                            _minhChung.remove(idMuc);
+                                                                            _minhChungName.remove(idMuc);
+                                                                          });
+                                                                        },
+                                                                        constraints: const BoxConstraints(),
+                                                                        padding: const EdgeInsets.all(4),
+                                                                        tooltip: 'Xóa',
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             )
-                                                        ],
-                                                      ),
+                                                          : OutlinedButton.icon(
+                                                              onPressed: () => _pickImage(idMuc),
+                                                              icon: const Icon(Icons.upload_file, size: 18, color: Color(0xFF3182CE)),
+                                                              label: Text('Thêm minh chứng', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF3182CE), fontWeight: FontWeight.w600)),
+                                                              style: OutlinedButton.styleFrom(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                                                side: const BorderSide(color: Color(0xFF3182CE)),
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                                backgroundColor: const Color(0xFF3182CE).withOpacity(0.05),
+                                                                elevation: 0,
+                                                              ),
+                                                            ),
                                                     )
                                                 ],
                                               ),
@@ -298,7 +373,7 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
                       ),
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _submit,
+                        onPressed: _confirmSubmit,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: const Color(0xFF3182CE),
