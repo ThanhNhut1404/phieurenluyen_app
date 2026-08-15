@@ -3,7 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.1.100/phieurenluyen-230907/api/';
+  // Nếu chạy máy ảo Android, dùng 10.0.2.2 thay cho localhost.
+  // Nếu cắm cáp điện thoại thật, bạn hãy thay bằng địa chỉ IPv4 máy tính của bạn (VD: 192.168.x.x)
+  static const String baseUrl = 'http://192.168.1.153/phieurenluyen/api/';
 
   // Lấy header chuẩn, bao gồm cả Token nếu đã lưu
   static Future<Map<String, String>> _getHeaders() async {

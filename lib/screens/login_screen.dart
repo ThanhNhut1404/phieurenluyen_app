@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (_formKey.currentState!.validate()) {
-      if (_captchaController.text.trim() != _captchaCode) {
+      if (_captchaController.text.trim().toLowerCase() != _captchaCode.toLowerCase()) {
         setState(() {
           _feedbackMessage = 'Mã xác thực không chính xác. Vui lòng thử lại!';
           _isFeedbackError = true;
