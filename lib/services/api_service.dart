@@ -143,4 +143,62 @@ class ApiService {
       };
     }
   }
+
+  // Hàm quên mật khẩu (gửi OTP)
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final url = Uri.parse('${baseUrl}forgot_password.php');
+      final headers = await _getHeaders();
+      final body = jsonEncode({
+        'email': email,
+      });
+
+      final response = await http.post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Lỗi server (Mã: ${response.statusCode})',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Lỗi kết nối: ${e.toString()}',
+      };
+    }
+  }
+
+  // Hàm khôi phục mật khẩu (xác minh OTP & đổi pass)
+  static Future<Map<String, dynamic>> resetPassword(String email, String otpCode, String newPassword) async {
+    try {
+      final url = Uri.parse('${baseUrl}reset_password.php');
+      final headers = await _getHeaders();
+      final body = jsonEncode({
+        'email': email,
+        'otp_code': otpCode,
+        'new_password': newPassword,
+      });
+
+      final response = await http.post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Lỗi server (Mã: ${response.statusCode})',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Lỗi kết nối: ${e.toString()}',
+      };
+    }
+  }
 }

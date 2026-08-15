@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phieurenluyen_app/screens/activation_screen.dart';
+import 'package:phieurenluyen_app/screens/forgot_password_screen.dart';
 import 'package:phieurenluyen_app/screens/home_screen.dart';
 import 'package:phieurenluyen_app/services/api_service.dart';
 
@@ -290,8 +291,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           child: Text(
                             'Quên mật khẩu?',
                             style: GoogleFonts.plusJakartaSans(
@@ -391,9 +402,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    
                     if (_feedbackMessage != null)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
+                        padding: const EdgeInsets.only(bottom: 12.0, top: 12.0),
                         child: Text(
                           _feedbackMessage!,
                           textAlign: TextAlign.center,
