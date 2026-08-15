@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phieurenluyen_app/screens/activation_screen.dart';
+import 'package:phieurenluyen_app/screens/home_screen.dart';
+import 'package:phieurenluyen_app/services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -55,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     setState(() {
       _feedbackMessage = null;
     });
@@ -74,15 +76,40 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _feedbackMessage = 'Đăng nhập thành công! Chào mừng trở lại.';
-            _isFeedbackError = false;
-          });
-        }
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      final response = await ApiService.login(email, password);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
       });
+
+      if (response['status'] == 'success') {
+        // Hiển thị SnackBar chúc mừng
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Đăng nhập thành công!'),
+            backgroundColor: const Color(0xFF0F763E),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Chuyển thẳng sang HomeScreen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        setState(() {
+          _feedbackMessage = response['message'] ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
+          _isFeedbackError = true;
+        });
+        // Có thể sinh mã captcha mới khi sai
+        _generateNewCaptcha();
+      }
     }
   }
 
