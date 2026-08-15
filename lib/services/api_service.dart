@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Nếu chạy máy ảo Android, dùng 10.0.2.2 thay cho localhost.
-  // Nếu cắm cáp điện thoại thật, bạn hãy thay bằng địa chỉ IPv4 máy tính của bạn (VD: 192.168.x.x)
-  static const String baseUrl = 'http://192.168.1.153/phieurenluyen/api/';
+  // Đang chạy nội bộ trên Chrome nên dùng localhost
+  static const String baseUrl = 'http://localhost/phieurenluyen/api/';
 
   // Lấy header chuẩn, bao gồm cả Token nếu đã lưu
   static Future<Map<String, String>> _getHeaders() async {
@@ -46,6 +46,16 @@ class ApiService {
           if (decoded['data'] != null && decoded['data']['token'] != null) {
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', decoded['data']['token']);
+            
+            // Lưu thêm thông tin user
+            if (decoded['data']['user'] != null) {
+              final user = decoded['data']['user'];
+              final name = user['ten_sinh_vien'] ?? 'Sinh viên';
+              final email = user['email'] ?? '';
+              
+              await prefs.setString('user_name', name);
+              await prefs.setString('user_email', email);
+            }
           }
         }
         
@@ -202,5 +212,33 @@ class ApiService {
         'message': 'Lỗi kết nối: ${e.toString()}',
       };
     }
+  }
+
+  // Hàm đổi mật khẩu
+  static Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final headers = await _getHeaders();
+      final url = Uri.parse('${baseUrl}change_password.php');
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({
+          'old_password': oldPassword,
+          'new_password': newPassword,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'status': 'error', 'message': e.toString()};
+    }
+  }
+
+  // Hàm đăng xuất
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('user_name');
+    await prefs.remove('user_email');
   }
 }

@@ -69,6 +69,13 @@ class _LoginScreenState extends State<LoginScreen> {
           _feedbackMessage = 'Mã xác thực không chính xác. Vui lòng thử lại!';
           _isFeedbackError = true;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mã xác thực không chính xác. Vui lòng thử lại!'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         _generateNewCaptcha();
         return;
       }
@@ -104,10 +111,27 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
+        final errorMsg = response['message'] ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
         setState(() {
-          _feedbackMessage = response['message'] ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
+          _feedbackMessage = errorMsg;
           _isFeedbackError = true;
         });
+        
+        // Hiển thị thông báo dạng Popup
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Lỗi đăng nhập', style: TextStyle(color: Colors.red)),
+            content: Text(errorMsg),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        );
+        
         // Có thể sinh mã captcha mới khi sai
         _generateNewCaptcha();
       }
