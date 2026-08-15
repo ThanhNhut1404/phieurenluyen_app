@@ -115,4 +115,32 @@ class ApiService {
       };
     }
   }
+
+  // Hàm yêu cầu kích hoạt tài khoản
+  static Future<Map<String, dynamic>> yeuCauKichHoat(String email) async {
+    try {
+      final url = Uri.parse('${baseUrl}yeu_cau_kich_hoat.php');
+      final headers = await _getHeaders();
+      final body = jsonEncode({
+        'email': email,
+      });
+
+      final response = await http.post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Lỗi server (Mã: ${response.statusCode})',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Lỗi kết nối: ${e.toString()}',
+      };
+    }
+  }
 }

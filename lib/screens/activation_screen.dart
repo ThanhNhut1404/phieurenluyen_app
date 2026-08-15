@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phieurenluyen_app/screens/login_screen.dart';
+import 'package:phieurenluyen_app/services/api_service.dart';
 
 class ActivationScreen extends StatefulWidget {
   const ActivationScreen({super.key});
@@ -29,25 +30,32 @@ class _ActivationScreenState extends State<ActivationScreen> {
     await prefs.setBool('isFirstTime', false);
   }
 
-  void _handleActivation() {
+  void _handleActivation() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
         _successMessage = null;
       });
 
-      // Giả lập gọi API gửi email kích hoạt trong 1.5 giây
-      Future.delayed(const Duration(milliseconds: 1500), () async {
-        await _setNotFirstTime(); // Đánh dấu thiết bị đã kích hoạt/qua bước này
+      final response = await ApiService.yeuCauKichHoat(_emailController.text);
+      await _setNotFirstTime();
 
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _successMessage = 
-                'Yêu cầu kích hoạt đã được gửi thành công!\nVui lòng kiểm tra hộp thư email của bạn để nhận thông tin tài khoản và mật khẩu đăng nhập.';
-          });
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (response['status'] == 'success') {
+            _successMessage = response['message'];
+          } else {
+            // Hiển thị lỗi từ API
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Có lỗi xảy ra'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        });
+      }
     }
   }
 
