@@ -265,11 +265,13 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
                                                           ),
                                                           onChanged: (val) {
                                                             int? d = int.tryParse(val);
-                                                            if (d != null && d >= 0 && d <= maxDiem) {
-                                                              _diemDaCham[idMuc] = d;
-                                                            } else if (val.isEmpty) {
-                                                              _diemDaCham.remove(idMuc);
-                                                            }
+                                                            setState(() {
+                                                              if (d != null && d >= 0 && d <= maxDiem) {
+                                                                _diemDaCham[idMuc] = d;
+                                                              } else if (val.isEmpty) {
+                                                                _diemDaCham.remove(idMuc);
+                                                              }
+                                                            });
                                                           },
                                                         ),
                                                       ),
@@ -367,22 +369,44 @@ class _ChamDiemScreenState extends State<ChamDiemScreen> {
                     ),
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
+                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
                       ),
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _confirmSubmit,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: const Color(0xFF3182CE),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: Text(
-                          'Lưu kết quả',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Tổng điểm đã chấm:',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+                              ),
+                              Text(
+                                '${_diemDaCham.values.fold<int>(0, (int sum, int item) => sum + item)} / 100',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF157F1F)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _confirmSubmit,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                backgroundColor: const Color(0xFF3182CE),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: Text(
+                                _daChamDiem ? 'Cập nhật minh chứng' : 'Lưu kết quả',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   ],

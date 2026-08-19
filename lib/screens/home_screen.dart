@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phieurenluyen_app/screens/cham_diem_screen.dart';
+import 'package:phieurenluyen_app/screens/ket_qua_screen.dart';
 import 'package:phieurenluyen_app/screens/profile_screen.dart';
+import 'package:phieurenluyen_app/services/api_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,11 +18,23 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final Color primaryGreen = const Color(0xFF157F1F); // Màu xanh trường học
   String _userName = 'Sinh viên';
+  String? _avatarUrl;
+  Map<String, dynamic>? _dotHienTai;
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadDotHienTai();
+  }
+
+  Future<void> _loadDotHienTai() async {
+    final res = await ApiService.getDotHienTai();
+    if (res['status'] == 'success') {
+      setState(() {
+        _dotHienTai = res['data'];
+      });
+    }
   }
 
   Future<void> _loadUserInfo() async {
@@ -28,6 +42,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _userName = prefs.getString('user_name') ?? 'Sinh viên';
     });
+
+    final profileRes = await ApiService.getProfile();
+    if (profileRes['status'] == 'success') {
+      setState(() {
+        if (profileRes['data']['anh_dai_dien'] != null && profileRes['data']['anh_dai_dien'].toString().isNotEmpty) {
+          _avatarUrl = profileRes['data']['anh_dai_dien'].toString();
+        }
+      });
+    }
   }
 
   @override
@@ -101,9 +124,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Avatar
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 22,
-                        backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
+                        backgroundColor: Colors.white24,
+                        backgroundImage: _avatarUrl != null 
+                            ? NetworkImage(ApiService.baseUrl.replaceAll('api/', '') + _avatarUrl! + "?v=${DateTime.now().millisecondsSinceEpoch}")
+                            : const NetworkImage('https://i.pravatar.cc/150?img=11') as ImageProvider,
                       ),
                       const SizedBox(width: 12),
                       // Tên sinh viên
@@ -173,19 +199,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Đợt rèn luyện hiện tại:',
+                            _dotHienTai != null ? 'Chấm điểm rèn luyện ${_dotHienTai!['ten_hoc_ky']} - ${_dotHienTai!['ten_nam_hoc']}' : 'Chưa có đợt đánh giá nào mở',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: Colors.grey[600],
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Học kỳ hiện tại',
+                            _dotHienTai != null ? 'Từ ${_dotHienTai!['thoi_gian_bat_dau']} đến ${_dotHienTai!['thoi_gian_ket_thuc']}' : 'Chưa có đợt đánh giá nào mở',
                             style: GoogleFonts.inter(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: _dotHienTai != null ? Colors.black87 : Colors.grey,
                             ),
                           ),
                         ],
@@ -259,7 +287,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildFunctionIcon(context, Icons.assignment, Colors.blue, 'Chấm điểm\nRèn luyện', () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const ChamDiemScreen()));
                       }),
-                      _buildFunctionIcon(context, Icons.school, Colors.green, 'Xem kết quả', () {}),
+                      _buildFunctionIcon(context, Icons.school, Colors.green, 'Xem kết quả', () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const KetQuaScreen()));
+                      }),
                       _buildFunctionIcon(context, Icons.gavel, Colors.orange, 'Quy định', () {}),
                       _buildFunctionIcon(context, Icons.receipt_long, Colors.teal, 'Minh chứng', () {}),
                       _buildFunctionIcon(context, Icons.menu_book, Colors.red, 'Chương trình\nkhung', () {}),

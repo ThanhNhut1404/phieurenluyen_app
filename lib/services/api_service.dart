@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
@@ -240,5 +242,115 @@ class ApiService {
     await prefs.remove('token');
     await prefs.remove('user_name');
     await prefs.remove('user_email');
+  }
+
+  // Hàm lấy danh sách kết quả (lịch sử chấm điểm)
+  static Future<Map<String, dynamic>> getKetQua() async {
+    try {
+      final url = Uri.parse('${baseUrl}get_ket_qua.php');
+      final headers = await _getHeaders();
+
+      final response = await http.get(url, headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Lỗi server (Mã: ${response.statusCode})',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Lỗi kết nối: ${e.toString()}',
+      };
+    }
+  }
+
+  // Hàm lấy đợt rèn luyện hiện tại
+  static Future<Map<String, dynamic>> getDotHienTai() async {
+    try {
+      final url = Uri.parse('${baseUrl}get_dot_hien_tai.php');
+      final headers = await _getHeaders();
+
+      final response = await http.get(url, headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Lỗi server (Mã: ${response.statusCode})',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Lỗi kết nối: ${e.toString()}',
+      };
+    }
+  }
+
+  // Hàm lấy thông tin hồ sơ sinh viên
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final url = Uri.parse('${baseUrl}get_profile.php');
+      final headers = await _getHeaders();
+
+      final response = await http.get(url, headers: headers)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Lỗi server (Mã: ${response.statusCode})',
+        };
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Lỗi kết nối: ${e.toString()}',
+      };
+    }
+  }
+
+  // Hàm tải lên ảnh đại diện
+  static Future<Map<String, dynamic>> uploadAvatar(XFile imageFile) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('token');
+
+      var request = http.MultipartRequest('POST', Uri.parse('${baseUrl}update_avatar.php'));
+      
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      // Hỗ trợ cả Web và Mobile
+      final bytes = await imageFile.readAsBytes();
+      var multipartFile = http.MultipartFile.fromBytes(
+        'avatar', 
+        bytes,
+        filename: imageFile.name,
+      );
+      
+      request.files.add(multipartFile);
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {'status': 'error', 'message': 'Lỗi tải ảnh lên server'};
+      }
+    } catch (e) {
+      return {'status': 'error', 'message': e.toString()};
+    }
   }
 }
